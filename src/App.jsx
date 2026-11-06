@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import NavIcon from "./components/NavIcon";
+import Dialog from "./components/Dialog";
 import Library from "./pages/Library";
 import Setup from "./pages/Setup";
 import Workout, { format } from "./pages/Workout";
@@ -17,15 +19,32 @@ export default function App() {
       reps: 10,
       rest: 60,
       load: 0,
-      auto: true,
     }),
     [loads, setLoads] = useState([]),
     [error, setError] = useState(""),
-    [leaveGuard, setLeaveGuard] = useState(false);
+    [leaveGuard, setLeaveGuard] = useState(false),
+    [resumeAfterGuard, setResumeAfterGuard] = useState(false);
   const workout = useWorkout(),
     s = workout.session,
     active = page === "workout" && s?.status !== "completed",
     previous = data.history.find((r) => r.exercise === exercise.id);
+  function openLeaveGuard() {
+    const running = ["active", "resting"].includes(s?.status);
+    setResumeAfterGuard(running);
+    if (running) workout.pause();
+    setLeaveGuard(true);
+  }
+  function closeLeaveGuard() {
+    setLeaveGuard(false);
+    if (resumeAfterGuard) workout.pause();
+  }
+  useEffect(() => {
+    const heading = document.querySelector("main h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  }, [page, s?.status === "completed"]);
   function update(next) {
     try {
       persist(next);
@@ -103,17 +122,17 @@ export default function App() {
         </div>
         <nav>
           {[
-            ["library", "Workout", "◈"],
-            ["history", "History", "◷"],
-            ["settings", "Settings", "⚙"],
-          ].map(([id, label, glyph]) => (
+            ["library", "Workout"],
+            ["history", "History"],
+            ["settings", "Settings"],
+          ].map(([id, label]) => (
             <button
               key={id}
               aria-label={label}
               aria-current={page === id ? "page" : undefined}
-              onClick={() => (s ? setLeaveGuard(true) : setPage(id))}
+              onClick={() => (s ? openLeaveGuard() : setPage(id))}
             >
-              <span>{glyph}</span>
+              <NavIcon name={label} />
               <strong>{label}</strong>
             </button>
           ))}
@@ -137,63 +156,35 @@ export default function App() {
           </div>
         )}
         {leaveGuard && s && (
-          <div
-            className="modal-backdrop"
-            onClick={() => setLeaveGuard(false)}
+          <Dialog
+            title={
+              s.status === "completed"
+                ? "Save or discard first"
+                : "Workout still in progress"
+            }
+            onCancel={closeLeaveGuard}
           >
-            <div
-              className="card modal leave-guard"
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="leave-guard-title"
-              aria-describedby="leave-guard-desc"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="leave-guard-icon" aria-hidden="true">
-                {s.status === "completed" ? "◷" : "◎"}
-              </div>
-              <h2 id="leave-guard-title">
-                {s.status === "completed"
-                  ? "Save or discard first"
-                  : "Workout still in progress"}
-              </h2>
-              <p id="leave-guard-desc">
-                {s.status === "completed"
-                  ? "This session isn’t stored until you choose."
-                  : "Leaving now would interrupt this session. Stay and keep training, or end it to review what you’ve done."}
-              </p>
-              <div className="actions leave-guard-actions">
-                {s.status === "completed" ? (
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={() => setLeaveGuard(false)}
-                  >
-                    Stay here
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLeaveGuard(false);
-                        workout.end();
-                      }}
-                    >
-                      End & review
-                    </button>
-                    <button
-                      type="button"
-                      className="primary"
-                      onClick={() => setLeaveGuard(false)}
-                    >
-                      Continue workout
-                    </button>
-                  </>
-                )}
-              </div>
+            <p>
+              {s.status === "completed"
+                ? "This session isn’t stored until you choose."
+                : "End this session to review it, or continue training."}
+            </p>
+            <div className="actions">
+              <button className="primary" onClick={closeLeaveGuard}>
+                {s.status === "completed" ? "Stay here" : "Continue workout"}
+              </button>
+              {s.status !== "completed" && (
+                <button
+                  onClick={() => {
+                    setLeaveGuard(false);
+                    workout.end();
+                  }}
+                >
+                  End & review
+                </button>
+              )}
             </div>
-          </div>
+          </Dialog>
         )}
         {page === "library" && (
           <Library

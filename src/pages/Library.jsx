@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { exercises, findExercises } from "../domain/library";
 import Preview from "../components/Preview";
+import * as Tabs from "@radix-ui/react-tabs";
+import { Star } from "lucide-react";
+import FilterSelect from "../components/FilterSelect";
 export default function Library({ data, onFavorite, onSelect, onDetails }) {
   const [query, setQuery] = useState(""),
     [muscle, setMuscle] = useState("all"),
@@ -13,39 +16,33 @@ export default function Library({ data, onFavorite, onSelect, onDetails }) {
         <h1>Exercise library</h1>
         <p>Find your next move.</p>
       </header>
-      <div className="tabs">
-        <button
-          aria-pressed={tab === "recent"}
-          onClick={() => setTab("recent")}
-        >
-          Recently used
-        </button>
-        <button
-          aria-pressed={tab === "favorites"}
-          onClick={() => setTab("favorites")}
-        >
-          Favourites
-        </button>
-      </div>
-      <div className="shortcuts">
-        {data[tab].map((id) => {
-          const e = exercises.find((e) => e.id === id);
-          return (
-            e && (
-              <button key={id} onClick={() => onSelect(e)}>
-                <strong>{e.name}</strong>
-                <span>{e.equipment} →</span>
-              </button>
-            )
-          );
-        })}
-        {!data[tab].length && (
-          <p className="muted">Star an exercise to keep it here.</p>
-        )}
-      </div>
+      <Tabs.Root value={tab} onValueChange={setTab}>
+        <Tabs.List className="tabs" aria-label="Exercise shortcuts">
+          <Tabs.Trigger value="recent">Recently used</Tabs.Trigger>
+          <Tabs.Trigger value="favorites">Favourites</Tabs.Trigger>
+        </Tabs.List>
+        {["recent", "favorites"].map((key) => (
+          <Tabs.Content key={key} value={key} className="shortcuts">
+            {data[key].map((id) => {
+              const e = exercises.find((e) => e.id === id);
+              return (
+                e && (
+                  <button key={id} onClick={() => onSelect(e)}>
+                    <strong>{e.name}</strong>
+                    <span>{e.equipment} →</span>
+                  </button>
+                )
+              );
+            })}
+            {!data[key].length && (
+              <p className="muted">Star an exercise to keep it here.</p>
+            )}
+          </Tabs.Content>
+        ))}
+      </Tabs.Root>
       <div className="section-heading">
         <h2>All exercises</h2>
-        <span>
+        <span role="status" aria-atomic="true">
           {list.length} of {exercises.length}
         </span>
       </div>
@@ -57,26 +54,30 @@ export default function Library({ data, onFavorite, onSelect, onDetails }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <select
-          aria-label="Muscle group"
+        <FilterSelect
+          label="Muscle group"
           value={muscle}
-          onChange={(e) => setMuscle(e.target.value)}
-        >
-          <option value="all">All muscle groups</option>
-          {[...new Set(exercises.map((e) => e.group))].map((g) => (
-            <option key={g}>{g}</option>
-          ))}
-        </select>
-        <select
-          aria-label="Equipment"
+          onChange={setMuscle}
+          options={[
+            { value: "all", label: "All muscle groups" },
+            ...[...new Set(exercises.map((e) => e.group))].map((g) => ({
+              value: g,
+              label: g,
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Equipment"
           value={equipment}
-          onChange={(e) => setEquipment(e.target.value)}
-        >
-          <option value="all">All equipment</option>
-          {[...new Set(exercises.map((e) => e.equipment))].map((g) => (
-            <option key={g}>{g}</option>
-          ))}
-        </select>
+          onChange={setEquipment}
+          options={[
+            { value: "all", label: "All equipment" },
+            ...[...new Set(exercises.map((e) => e.equipment))].map((g) => ({
+              value: g,
+              label: g,
+            })),
+          ]}
+        />
       </div>
       <div className="exercise-grid">
         {list.map((e) => (
@@ -88,7 +89,12 @@ export default function Library({ data, onFavorite, onSelect, onDetails }) {
                 aria-pressed={data.favorites.includes(e.id)}
                 onClick={() => onFavorite(e.id)}
               >
-                {data.favorites.includes(e.id) ? "★" : "☆"}
+                <Star
+                  size={21}
+                  strokeWidth={1.7}
+                  fill={data.favorites.includes(e.id) ? "currentColor" : "none"}
+                  aria-hidden="true"
+                />
               </button>
               <button
                 className="art-button"

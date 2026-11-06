@@ -84,3 +84,25 @@ test("skipping rest preserves completed repetitions and starts next set", () => 
   assert.equal(s.setReps, 0);
   assert.equal(s.restRemaining, 0);
 });
+
+test("rest adjustments preserve activity and clamp to ten minutes", () => {
+  const s = engine.tick(engine.createSession("curls", 1, 3, 60), 3);
+  const longer = engine.adjustRest(s, 15);
+  assert.equal(longer.restRemaining, 75);
+  assert.equal(longer.reps, s.reps);
+  assert.equal(longer.elapsed, s.elapsed);
+  assert.equal(engine.adjustRest(longer, -60).restRemaining, 15);
+  assert.equal(engine.adjustRest(s, 1000).restRemaining, 600);
+  assert.equal(engine.adjustRest(s, -60).currentSet, 2);
+  assert.equal(engine.adjustRest(s, -60).status, "active");
+});
+test("paused rest can be adjusted without resuming and active sets are unchanged", () => {
+  const active = engine.createSession("curls", 1, 3, 60);
+  assert.deepEqual(engine.adjustRest(active, 15), active);
+  const paused = engine.pause(engine.tick(active, 3));
+  assert.equal(engine.adjustRest(paused, 15).status, "paused");
+  const next = engine.adjustRest(paused, -60);
+  assert.equal(next.currentSet, 2);
+  assert.equal(next.status, "paused");
+  assert.equal(next.pausedFrom, "active");
+});

@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { validatePlan, previousPlan } from "../domain/plan";
+import NumberStepper from "../components/NumberStepper";
 import Preview from "../components/Preview";
 export default function Setup({
   exercise,
@@ -8,18 +10,28 @@ export default function Setup({
   onBack,
   previous,
 }) {
+  const [submitted, setSubmitted] = useState(false);
+  const errors = submitted ? validatePlan(plan) : {};
   const field = (key, label, min, max) => (
-    <label>
-      {label}
-      <input
-        type="number"
+    <div className="plan-field">
+      <label htmlFor={`plan-${key}`}>{label}</label>
+      <NumberStepper
+        id={`plan-${key}`}
+        label={label}
         min={min}
         max={max}
         required
+        invalid={!!errors[key]}
+        describedBy={errors[key] ? `error-${key}` : undefined}
         value={plan[key]}
-        onChange={(e) => setPlan({ ...plan, [key]: e.target.value })}
+        onChange={(value) => setPlan({ ...plan, [key]: value })}
       />
-    </label>
+      {errors[key] && (
+        <span className="field-error" id={`error-${key}`}>
+          {errors[key]}
+        </span>
+      )}
+    </div>
   );
   return (
     <>
@@ -45,9 +57,16 @@ export default function Setup({
           </p>
         </div>
         <form
-          className="card"
+          className="card session-plan"
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
+            setSubmitted(true);
+            const invalid = Object.keys(validatePlan(plan));
+            if (invalid.length) {
+              document.getElementById(`plan-${invalid[0]}`)?.focus();
+              return;
+            }
             onStart();
           }}
         >
@@ -57,32 +76,46 @@ export default function Setup({
             {field("reps", "Reps / set", 1, 100)}
             {field("rest", "Rest · sec", 0, 600)}
           </div>
-          <label>
-            Load · kg <span className="muted">optional</span>
-            <input
-              type="number"
-              min="0"
-              max="1000"
-              step="0.5"
+          <div className="plan-field load-field">
+            <label htmlFor="plan-load">
+              Load · kg <span className="muted">optional</span>
+            </label>
+            <NumberStepper
+              id="plan-load"
+              label="Load · kg"
+              min={0}
+              max={1000}
+              step={0.5}
+              invalid={!!errors.load}
+              describedBy={errors.load ? "error-load" : undefined}
               value={plan.load}
-              onChange={(e) => setPlan({ ...plan, load: e.target.value })}
+              onChange={(value) => setPlan({ ...plan, load: value })}
             />
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={plan.auto}
-              onChange={(e) => setPlan({ ...plan, auto: e.target.checked })}
-            />
-            Automatic demo counting
-          </label>
+            {errors.load && (
+              <span className="field-error" id="error-load">
+                {errors.load}
+              </span>
+            )}
+          </div>
           {previous && (
             <div className="previous">
               <span>Last session</span>
               <strong>
                 {previous.reps} reps · {previous.completedSets || 1} sets
               </strong>
+              <button
+                type="button"
+                onClick={() => setPlan(previousPlan(previous, plan))}
+              >
+                Use last plan
+              </button>
             </div>
+          )}
+          {!Object.keys(validatePlan(plan)).length && (
+            <p className="plan-summary" role="status">
+              {plan.sets} sets × {plan.reps} reps ·{" "}
+              {Number(plan.sets) * Number(plan.reps)} total · {plan.rest}s rest
+            </p>
           )}
           <p className="muted small">{exercise.cue}</p>
           <button className="primary wide" type="submit">

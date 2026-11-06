@@ -26,10 +26,10 @@ If port 4173 is busy, stop the old prototype/server first. Keep the same URL/por
 ## Workout
 
 - Pick sets, reps per set, rest seconds and optional load in kg.
-- Automatic demo counting completes one rep every three seconds. Disable it to log sets manually.
+- Automatic demo counting is always on and completes one rep every three seconds.
 - Reps remaining count down. **Finish set** marks the current set complete; rest starts automatically.
 - **Sets** opens the log: current set, previous load, editable kg and completed reps.
-- Pause freezes active work or rest. Skip rest when ready. End early to review/save the work completed.
+- Pause freezes active work or rest. Adjust the current break by 15 seconds using minus/plus, including while paused; reducing it to zero advances to the next set. Adjustments are limited to 10 minutes. Skip rest when ready. End early to review/save the work completed.
 - History, favourites, recent exercises and settings stay in this browser. Existing `smartfitness.v1` history is retained.
 
 ## Code map
@@ -54,3 +54,10 @@ There is no backend requirement for the prototype. `src/services/vision.js` prov
 Repository access is private; the owner can invite teammates under GitHub **Settings → Collaborators**. Clone with your own GitHub account.
 
 Use a feature branch, keep each PR focused, and run `npm test` and `npm run build` before review. Commit `package-lock.json`; install with `npm ci`. Do not commit node_modules, dist, recordings, model weights, API keys or personal session exports. Run the checks locally before opening a pull request.
+
+## Design documentation
+
+- [Course application report](docs/reports/SmartFitness-Course-Application-Report.pdf): course-based refinements and verification, captured before the later UI library refactor.
+- [Component libraries](docs/component-libraries.md): current Radix UI / Lucide mapping and browser checks.
+
+Setup fields adapt to narrow cards. Rest minus/plus controls always adjust by 15 seconds.

@@ -1,21 +1,34 @@
 import React, { useState } from "react";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import * as Switch from "@radix-ui/react-switch";
+import * as Slider from "@radix-ui/react-slider";
+import { CircleHelp } from "lucide-react";
 
 const VOICE_DEMO = ["Start", "Pause", "Resume", "End"];
 
 function HelpTip({ text }) {
   return (
-    <span className="help-tip">
-      <button
-        type="button"
-        className="help-tip-btn"
-        aria-label={`About: ${text}`}
-      >
-        ?
-      </button>
-      <span className="help-tip-bubble" role="tooltip">
-        {text}
-      </span>
-    </span>
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <button
+          type="button"
+          className="help-tip-btn"
+          aria-label={`About: ${text}`}
+        >
+          <CircleHelp size={15} strokeWidth={1.5} aria-hidden="true" />
+        </button>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          className="ui-tooltip"
+          sideOffset={8}
+          collisionPadding={12}
+        >
+          {text}
+          <Tooltip.Arrow className="ui-tooltip-arrow" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 
@@ -35,14 +48,14 @@ function SettingRow({ title, tip, children }) {
 
 function Toggle({ checked, onChange, label }) {
   return (
-    <button
-      type="button"
-      className={`toggle ${checked ? "on" : ""}`}
-      role="switch"
-      aria-checked={checked}
+    <Switch.Root
+      className="ui-switch"
+      checked={checked}
+      onCheckedChange={onChange}
       aria-label={label}
-      onClick={() => onChange(!checked)}
-    />
+    >
+      <Switch.Thumb className="ui-switch-thumb" />
+    </Switch.Root>
   );
 }
 
@@ -97,7 +110,7 @@ export default function Settings({ settings, onChange }) {
   }
 
   return (
-    <>
+    <Tooltip.Provider delayDuration={250}>
       <header>
         <h1>Make it feel like you.</h1>
         <p>Simple preferences for a more comfortable workout.</p>
@@ -106,8 +119,8 @@ export default function Settings({ settings, onChange }) {
       <section className="card settings-card">
         <h2>Feedback & display</h2>
         <p className="settings-lead">
-          Tune spoken cues and the on-screen guide so workouts stay clear without
-          clutter.
+          Tune spoken cues and the on-screen guide so workouts stay clear
+          without clutter.
         </p>
         <div className="settings-list">
           <SettingRow
@@ -126,17 +139,22 @@ export default function Settings({ settings, onChange }) {
             tip="Set how loud spoken feedback plays. Applies to workout cues and demos."
           >
             <div className="volume-control">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={volumePct}
-                aria-label="Speech volume"
-                onChange={(e) =>
-                  patch({ volume: Number(e.target.value) / 100 })
-                }
-              />
+              <Slider.Root
+                className="ui-slider"
+                min={0}
+                max={100}
+                step={5}
+                value={[volumePct]}
+                onValueChange={([value]) => patch({ volume: value / 100 })}
+              >
+                <Slider.Track className="ui-slider-track">
+                  <Slider.Range className="ui-slider-range" />
+                </Slider.Track>
+                <Slider.Thumb
+                  className="ui-slider-thumb"
+                  aria-label="Speech volume"
+                />
+              </Slider.Root>
               <span className="volume-value" aria-hidden="true">
                 {volumePct}%
               </span>
@@ -173,7 +191,8 @@ export default function Settings({ settings, onChange }) {
       <section className="card settings-card">
         <h2>Controls & devices</h2>
         <p className="settings-lead">
-          Designed for hands-free exercise, with familiar controls as a fallback.
+          Designed for hands-free exercise, with familiar controls as a
+          fallback.
         </p>
         <div className="settings-list">
           <SettingRow
@@ -205,6 +224,6 @@ export default function Settings({ settings, onChange }) {
           </SettingRow>
         </div>
       </section>
-    </>
+    </Tooltip.Provider>
   );
 }

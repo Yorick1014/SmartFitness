@@ -1,0 +1,215 @@
+/* Radix UI primitives share the existing SmartFitness visual tokens. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[role="tab"]:focus-visible,
+[role="slider"]:focus-visible {
+  outline: 1.5px solid #9791c8;
+  outline-offset: 3px;
+}
+h1[tabindex="-1"]:focus {
+  outline: none;
+}
+.ui-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #11182799;
+  backdrop-filter: blur(4px);
+}
+.ui-dialog {
+  position: fixed;
+  z-index: 201;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  color: var(--ink);
+  box-shadow: 0 24px 80px #11182740;
+}
+.ui-dialog:focus {
+  outline: none;
+}
+.tabs button[data-state="active"] {
+  background: #f0effc;
+  color: #514ba6;
+  border-color: #e5e2f6;
+  font-weight: 500;
+}
+.shortcuts[data-state="inactive"] {
+  display: none;
+}
+.ui-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: #d8dbe6;
+  flex-shrink: 0;
+}
+.ui-switch[data-state="checked"] {
+  background: var(--purple);
+}
+.ui-switch-thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px #20273f33;
+  transition: transform 150ms ease;
+}
+.ui-switch-thumb[data-state="checked"] {
+  transform: translateX(18px);
+}
+.help-tip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #8b92a5;
+  cursor: help;
+  flex-shrink: 0;
+}
+.help-tip-btn:hover,
+.help-tip-btn[data-state="delayed-open"] {
+  color: var(--purple);
+  background: var(--pale);
+}
+.ui-tooltip {
+  z-index: 300;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px #20273f18;
+}
+.ui-tooltip-arrow {
+  fill: white;
+}
+.ui-slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 80px;
+  height: 36px;
+  touch-action: none;
+  user-select: none;
+}
+.ui-slider-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: #e2e3ef;
+}
+.ui-slider-range {
+  position: absolute;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--purple);
+}
+.ui-slider-thumb {
+  display: block;
+  width: 17px;
+  height: 17px;
+  border: 2px solid var(--purple);
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px #20273f20;
+}
+.ui-progress {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  background: #ffffff20;
+  border-radius: 99px;
+}
+.ui-progress-indicator {
+  height: 100%;
+  background: #a39ce8;
+}
+.workout-counter .ui-progress {
+  margin-top: 12px;
+}
+.set-drawer > .ui-progress {
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 0;
+  background: #e9e9f6;
+}
+.set-drawer > .ui-progress .ui-progress-indicator {
+  background: var(--purple);
+}
+.rest-adjustments {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rest-step-label {
+  min-width: 56px;
+  text-align: center;
+  font-size: 12px;
+  color: #bac3d8;
+}
+.session-plan {
+  container-type: inline-size;
+  min-width: 0;
+}
+.plan-field {
+  min-width: 0;
+}
+.number-stepper input:focus-visible {
+  outline: none;
+}
+.number-stepper:has(input:focus-visible) {
+  outline: 1.5px solid #9791c8;
+  outline-offset: 3px;
+}
+@container (max-width: 260px) {
+  .plan-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .plan-fields {
+    gap: 18px;
+  }
+  .plan-field .number-stepper {
+    width: 100%;
+  }
+}
+.workout-stage button:focus-visible {
+  outline: 1px solid #b8b1df;
+  outline-offset: 3px;
+}
+.number-stepper button {
+  display: grid;
+  place-items: center;
+}
+.favorite {
+  display: grid;
+  place-items: center;
+}
+.set-log-header button {
+  display: grid;
+  place-items: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-switch-thumb {
+    transition: none;
+  }
+}

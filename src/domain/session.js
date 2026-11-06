@@ -80,10 +80,31 @@ const resume = (s) =>
     ? { ...s, status: s.pausedFrom || "active", pausedFrom: null }
     : s;
 const skipRest = (s) => (s.status === "resting" ? nextSet(s) : s);
+function adjustRest(s, seconds) {
+  const paused = s.status === "paused" && s.pausedFrom === "resting";
+  if ((!paused && s.status !== "resting") || !Number.isFinite(seconds))
+    return s;
+  const remaining = Math.max(
+    0,
+    Math.min(600, s.restRemaining + Math.trunc(seconds)),
+  );
+  if (remaining) return { ...s, restRemaining: remaining };
+  const next = nextSet(s);
+  return paused ? pause(next) : next;
+}
 const setTracking = (s, tracking) => ({
   ...s,
   tracking,
   interruptions: s.interruptions + (!tracking && s.tracking ? 1 : 0),
 });
 
-export { createSession, tick, addRep, pause, resume, skipRest, setTracking };
+export {
+  createSession,
+  tick,
+  addRep,
+  pause,
+  resume,
+  skipRest,
+  adjustRest,
+  setTracking,
+};
