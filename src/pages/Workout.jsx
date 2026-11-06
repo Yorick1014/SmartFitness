@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Preview from "../components/Preview";
+import { exercises } from "../domain/library";
 export default function Workout({
   exercise,
   workout,
@@ -13,26 +14,50 @@ export default function Workout({
     [confirm, setConfirm] = useState(false);
   const resting = s.status === "resting",
     paused = s.status === "paused";
+  const isSeries = s.kind === "series";
+  const current = isSeries
+    ? exercises.find((e) => e.id === s.exercise) || exercise
+    : exercise;
   return (
     <section className={`workout-stage ${log ? "show-log" : ""}`}>
       <div className="workout-title">
-        <h1>{exercise.name}</h1>
+        <h1>{current.name}</h1>
+        {isSeries && (
+          <span className="series-progress">
+            Move {s.itemIndex + 1} of {s.items.length}
+          </span>
+        )}
         <span className="preview-chip">Demo camera</span>
       </div>
       <Preview
-        exercise={exercise}
+        exercise={current}
         moving={!countdown && s.status === "active"}
         overlay={overlay}
       />
       <aside className="workout-counter">
         <span>REPS REMAINING</span>
         <strong aria-live="polite">{s.target - s.setReps}</strong>
-        <p>
-          Set {s.currentSet} of {s.sets}
-        </p>
-        <progress value={s.reps} max={s.totalTarget} />
+        {isSeries ? (
+          <p>
+            {s.items
+              .slice(0, s.itemIndex)
+              .filter(Boolean)
+              .map((i) => exercises.find((e) => e.id === i.exercise)?.name)
+              .join(" · ") || "Series start"}
+          </p>
+        ) : (
+          <p>
+            Set {s.currentSet} of {s.sets}
+          </p>
+        )}
+        <progress
+          value={isSeries ? s.setReps : s.reps}
+          max={isSeries ? s.target : s.totalTarget}
+        />
         <small>
-          {s.reps} / {s.totalTarget} total reps
+          {isSeries
+            ? `${s.setReps} / ${s.target} reps this move`
+            : `${s.reps} / ${s.totalTarget} total reps`}
         </small>
       </aside>
       {(countdown || resting || paused) && (
@@ -75,15 +100,22 @@ export default function Workout({
         >
           Finish set ✓
         </button>
-        <button onClick={() => setLog(!log)} aria-expanded={log}>
-          Sets
-        </button>
+        {!isSeries && (
+          <button onClick={() => setLog(!log)} aria-expanded={log}>
+            Sets
+          </button>
+        )}
         <button onClick={() => setConfirm(true)}>End</button>
       </div>
       <div className="workout-time">
-        {format(s.elapsed)} <small>ACTIVE TIME</small>
+        {format(
+          isSeries
+            ? (s.results || []).reduce((a, r) => a + r.elapsed, 0) + s.elapsed
+            : s.elapsed,
+        )}{" "}
+        <small>ACTIVE TIME</small>
       </div>
-      {log && (
+      {log && !isSeries && (
         <aside className="set-drawer">
           <div className="section-heading">
             <h2>Set log</h2>
@@ -157,7 +189,9 @@ export default function Workout({
           >
             <h2>End workout?</h2>
             <p>
-              {s.reps} reps · {s.completedSets} completed sets
+              {isSeries
+                ? `${(s.results || []).length + 1} of ${s.items.length} moves · ${(s.results || []).reduce((a, r) => a + r.reps, 0) + s.reps} reps`
+                : `${s.reps} reps · ${s.completedSets} completed sets`}
             </p>
             <div className="actions">
               <button onClick={() => setConfirm(false)}>Continue</button>

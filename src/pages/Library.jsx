@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { exercises, findExercises } from "../domain/library";
 import Preview from "../components/Preview";
-export default function Library({ data, onFavorite, onSelect, onDetails }) {
+import RecentBanner from "../components/RecentBanner";
+export default function Library({
+  data,
+  onFavorite,
+  onSelect,
+  onDetails,
+  onStartSeries,
+}) {
   const [query, setQuery] = useState(""),
     [muscle, setMuscle] = useState("all"),
     [equipment, setEquipment] = useState("all"),
@@ -13,6 +20,7 @@ export default function Library({ data, onFavorite, onSelect, onDetails }) {
         <h1>Exercise library</h1>
         <p>Find your next move.</p>
       </header>
+      <RecentBanner onStartSeries={onStartSeries} />
       <div className="tabs">
         <button
           aria-pressed={tab === "recent"}
