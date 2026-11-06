@@ -3,6 +3,7 @@ import Library from "./pages/Library";
 import Setup from "./pages/Setup";
 import SeriesSetup from "./pages/SeriesSetup";
 import Workout, { format } from "./pages/Workout";
+import Stats from "./pages/Stats";
 import Settings from "./pages/Settings";
 import Preview from "./components/Preview";
 import Celebrate from "./components/Celebrate";
@@ -131,6 +132,7 @@ export default function App() {
           {[
             ["library", "Workout", "◈"],
             ["history", "History", "◷"],
+            ["stats", "Statistics", "▤"],
             ["settings", "Settings", "⚙"],
           ].map(([id, label, glyph]) => (
             <button
@@ -444,6 +446,7 @@ export default function App() {
             </div>
           </>
         )}
+        {page === "stats" && <Stats history={data.history} />}
         {page === "settings" && (
           <Settings
             settings={data.settings}

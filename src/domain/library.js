@@ -239,7 +239,7 @@ function normalizeAccess(raw = {}) {
     : Array.isArray(raw.history)
       ? raw.history.map((s) => s.exercise)
       : [];
-  const savedRecent = clean(recent).slice(0, 4);
+  const savedRecent = clean(recent).slice(0, 5);
   return {
     favorites: clean(raw.favorites),
     recent: savedRecent.length ? savedRecent : ["curls", "squats", "pushups"],
@@ -247,8 +247,8 @@ function normalizeAccess(raw = {}) {
 }
 function recordRecent(recent, id) {
   return valid(id)
-    ? [id, ...clean(recent).filter((item) => item !== id)].slice(0, 4)
-    : clean(recent).slice(0, 4);
+    ? [id, ...clean(recent).filter((item) => item !== id)].slice(0, 5)
+    : clean(recent).slice(0, 5);
 }
 function toggleFavorite(favorites, id) {
   const list = clean(favorites);
@@ -257,6 +257,11 @@ function toggleFavorite(favorites, id) {
       ? list.filter((item) => item !== id)
       : [...list, id]
     : list;
+}
+function recentExercises(recent) {
+  return clean(recent)
+    .map((id) => exercises.find((e) => e.id === id))
+    .filter(Boolean);
 }
 function findExercises({ query = "", muscle = "all", equipment = "all" } = {}) {
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -280,10 +285,34 @@ function findExercises({ query = "", muscle = "all", equipment = "all" } = {}) {
   });
 }
 
+function prioritizedExercises(list, recent = [], favorites = []) {
+  const recentRank = new Map(recent.map((id, i) => [id, i]));
+  const fav = new Set(favorites);
+  return list
+    .map((exercise, index) => ({ exercise, index }))
+    .sort((a, b) => {
+      const aR = recentRank.has(a.exercise.id);
+      const bR = recentRank.has(b.exercise.id);
+      const aF = fav.has(a.exercise.id);
+      const bF = fav.has(b.exercise.id);
+      const aFlag = aR || aF;
+      const bFlag = bR || bF;
+      if (aFlag !== bFlag) return aFlag ? -1 : 1;
+      if (aR && bR)
+        return recentRank.get(a.exercise.id) - recentRank.get(b.exercise.id);
+      if (aR !== bR) return aR ? -1 : 1;
+      if (aF !== bF) return aF ? -1 : 1;
+      return a.index - b.index;
+    })
+    .map(({ exercise }) => exercise);
+}
+
 export {
   exercises,
   normalizeAccess,
   recordRecent,
   toggleFavorite,
+  recentExercises,
   findExercises,
+  prioritizedExercises,
 };

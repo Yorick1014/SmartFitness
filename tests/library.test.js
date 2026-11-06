@@ -61,6 +61,22 @@ test("toggling favorites twice restores original selection", () => {
   );
   assert.deepEqual(saved, ["curls"]);
 });
+test("recentExercises maps valid ids to exercise objects in order and drops invalid ids", () => {
+  assert.equal(typeof library.recentExercises, "function");
+  const result = library.recentExercises([
+    "squats",
+    "missing",
+    "curls",
+    "squats",
+  ]);
+  assert.deepEqual(
+    result.map((e) => e.id),
+    ["squats", "curls"],
+  );
+  assert.ok(result.every((e) => e.name && e.equipment));
+  assert.deepEqual(library.recentExercises([]), []);
+  assert.deepEqual(library.recentExercises(undefined), []);
+});
 test("new and previously empty recent lists start with default exercise shortcuts", () => {
   assert.deepEqual(library.normalizeAccess().recent, [
     "curls",
@@ -75,4 +91,25 @@ test("new and previously empty recent lists start with default exercise shortcut
     library.normalizeAccess({ recent: ["rows", "curls"] }).recent,
     ["rows", "curls"],
   );
+});
+
+test("prioritizedExercises puts recent and favourite items first", () => {
+  assert.equal(typeof library.prioritizedExercises, "function");
+  const ordered = library.prioritizedExercises(
+    library.exercises,
+    ["pushups", "squats"],
+    ["curls"],
+  );
+  const ids = ordered.map((e) => e.id);
+  assert.equal(ids[0], "pushups");
+  assert.equal(ids[1], "squats");
+  assert.equal(ids[2], "curls");
+  assert.equal(ordered.length, library.exercises.length);
+});
+
+test("recordRecent keeps the five most recent unique exercises", () => {
+  let recent = [];
+  for (const id of ["curls", "squats", "pushups", "rows", "lunges", "crunches"])
+    recent = library.recordRecent(recent, id);
+  assert.deepEqual(recent, ["crunches", "lunges", "rows", "pushups", "squats"]);
 });

@@ -9,6 +9,11 @@ export default function RecentBanner({ onStartSeries }) {
           Chain several moves back to back, tune the reps for each, and run them
           as one varied session.
         </p>
+        <p className="recent-banner-benefits">
+          Combining exercises keeps sessions engaging, trains more muscle groups
+          per workout, and reduces repetitive strain — all while keeping your
+          rest and reps flexible.
+        </p>
       </div>
       <div className="recent-banner-action">
         <button className="series-cta" onClick={onStartSeries}>
