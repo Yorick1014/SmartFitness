@@ -3,11 +3,14 @@ import NavIcon from "./components/NavIcon";
 import Dialog from "./components/Dialog";
 import Library from "./pages/Library";
 import Setup from "./pages/Setup";
+import SeriesSetup from "./pages/SeriesSetup";
 import Workout, { format } from "./pages/Workout";
+import Stats from "./pages/Stats";
 import Settings from "./pages/Settings";
 import Preview from "./components/Preview";
 import Celebrate from "./components/Celebrate";
 import { exercises, toggleFavorite, recordRecent } from "./domain/library";
+import { createSeries, buildSeriesSessions } from "./domain/series";
 import { load, persist } from "./services/storage";
 import { useWorkout } from "./hooks/useWorkout";
 export default function App() {
@@ -20,6 +23,7 @@ export default function App() {
       rest: 60,
       load: 0,
     }),
+    [series, setSeries] = useState(createSeries),
     [loads, setLoads] = useState([]),
     [error, setError] = useState(""),
     [leaveGuard, setLeaveGuard] = useState(false),
@@ -67,14 +71,44 @@ export default function App() {
     workout.start(exercise, plan);
     setPage("workout");
   }
+  function startSeries() {
+    const items = buildSeriesSessions(series, plan.rest);
+    if (!items.length) return;
+    update({
+      ...data,
+      recent: items.reduce(
+        (recent, item) => recordRecent(recent, item.exercise),
+        data.recent,
+      ),
+    });
+    workout.startSeries(items);
+    setPage("workout");
+  }
   function save() {
+    const isSeries = s.kind === "series";
+    const record = isSeries
+      ? {
+          kind: "series",
+          items: s.items.map((i) => ({
+            exercise: i.exercise,
+            target: i.target,
+          })),
+          results: s.results,
+          reps: s.results.reduce((a, r) => a + r.reps, 0),
+          totalTarget: s.totalTarget,
+          completedSets: s.results.filter((r) => r.status === "completed")
+            .length,
+          sets: s.items.length,
+          elapsed: s.results.reduce((a, r) => a + r.elapsed, 0),
+          restInterval: Number(plan.rest) || 0,
+        }
+      : { ...s, loads };
     if (
       update({
         ...data,
         history: [
           {
-            ...s,
-            loads,
+            ...record,
             id: crypto.randomUUID(),
             date: new Date().toISOString(),
             simulated: true,
@@ -124,6 +158,7 @@ export default function App() {
           {[
             ["library", "Workout"],
             ["history", "History"],
+            ["stats", "Statistics"],
             ["settings", "Settings"],
           ].map(([id, label]) => (
             <button
@@ -197,6 +232,17 @@ export default function App() {
               setExercise(e);
               setPage("details");
             }}
+            onStartSeries={() => setPage("seriesSetup")}
+          />
+        )}
+        {page === "seriesSetup" && (
+          <SeriesSetup
+            series={series}
+            setSeries={setSeries}
+            plan={plan}
+            setPlan={setPlan}
+            onStart={startSeries}
+            onBack={() => setPage("library")}
           />
         )}
         {page === "details" && (
@@ -250,28 +296,74 @@ export default function App() {
               </header>
               <section className="card summary">
                 <div className="success">✓</div>
-                <h2>{exercise.name}</h2>
-                <div className="summary-stats">
-                  <div>
-                    <strong>
-                      {s.reps} / {s.totalTarget}
-                    </strong>
-                    <span>Reps</span>
-                  </div>
-                  <div>
-                    <strong>
-                      {s.completedSets} / {s.sets}
-                    </strong>
-                    <span>Sets</span>
-                  </div>
-                  <div>
-                    <strong>{format(s.elapsed)}</strong>
-                    <span>Active time</span>
-                  </div>
-                </div>
-                <p>
-                  {s.target} reps per set · {s.restInterval}s rest
-                </p>
+                {s.kind === "series" ? (
+                  <>
+                    <h2>Exercise series</h2>
+                    <div className="summary-stats">
+                      <div>
+                        <strong>
+                          {s.results.reduce((a, r) => a + r.reps, 0)} /{" "}
+                          {s.totalTarget}
+                        </strong>
+                        <span>Reps</span>
+                      </div>
+                      <div>
+                        <strong>
+                          {
+                            s.results.filter((r) => r.status === "completed")
+                              .length
+                          }{" "}
+                          / {s.items.length}
+                        </strong>
+                        <span>Moves done</span>
+                      </div>
+                      <div>
+                        <strong>
+                          {format(s.results.reduce((a, r) => a + r.elapsed, 0))}
+                        </strong>
+                        <span>Active time</span>
+                      </div>
+                    </div>
+                    <ul className="series-result">
+                      {s.results.map((r) => (
+                        <li key={r.exercise}>
+                          <span>
+                            {exercises.find((e) => e.id === r.exercise)?.name ||
+                              r.exercise}
+                          </span>
+                          <strong>
+                            {r.reps} / {r.totalTarget} reps
+                          </strong>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <h2>{exercise.name}</h2>
+                    <div className="summary-stats">
+                      <div>
+                        <strong>
+                          {s.reps} / {s.totalTarget}
+                        </strong>
+                        <span>Reps</span>
+                      </div>
+                      <div>
+                        <strong>
+                          {s.completedSets} / {s.sets}
+                        </strong>
+                        <span>Sets</span>
+                      </div>
+                      <div>
+                        <strong>{format(s.elapsed)}</strong>
+                        <span>Active time</span>
+                      </div>
+                    </div>
+                    <p>
+                      {s.target} reps per set · {s.restInterval}s rest
+                    </p>
+                  </>
+                )}
                 <div className="actions">
                   <button
                     onClick={() => {
@@ -315,29 +407,47 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.history.map((r) => (
-                    <tr key={r.id}>
-                      <td>
-                        {exercises.find((e) => e.id === r.exercise)?.name ||
-                          r.exercise}
-                        <small>{r.restInterval || 0}s rest · Demo</small>
-                      </td>
-                      <td>{new Date(r.date).toLocaleDateString()}</td>
-                      <td>
-                        {r.completedSets ?? 1} / {r.sets || 1}
-                      </td>
-                      <td>
-                        {r.reps} / {r.totalTarget || r.target}
-                      </td>
-                      <td>{format(r.elapsed)}</td>
-                    </tr>
-                  ))}
+                  {data.history.map((r) => {
+                    const isSeries = r.kind === "series";
+                    const name = isSeries
+                      ? `Series · ${r.items.length} moves`
+                      : exercises.find((e) => e.id === r.exercise)?.name ||
+                        r.exercise;
+                    return (
+                      <tr key={r.id}>
+                        <td>
+                          {name}
+                          {isSeries && r.results && (
+                            <small>
+                              {r.results
+                                .map(
+                                  (x) =>
+                                    exercises.find((e) => e.id === x.exercise)
+                                      ?.name || x.exercise,
+                                )
+                                .join(" · ")}
+                            </small>
+                          )}
+                          <small>{r.restInterval || 0}s rest · Demo</small>
+                        </td>
+                        <td>{new Date(r.date).toLocaleDateString()}</td>
+                        <td>
+                          {r.completedSets ?? 1} / {r.sets || 1}
+                        </td>
+                        <td>
+                          {r.reps} / {r.totalTarget || r.target}
+                        </td>
+                        <td>{format(r.elapsed)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {!data.history.length && <p className="empty">No sessions yet</p>}
             </div>
           </>
         )}
+        {page === "stats" && <Stats history={data.history} />}
         {page === "settings" && (
           <Settings
             settings={data.settings}

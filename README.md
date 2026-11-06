@@ -43,7 +43,7 @@ src/
   services/     Browser storage and future vision transport
 ```
 
-UI state uses React hooks; no global event handlers or HTML string renderer. A single session has one exercise and a fixed rep target for each set. Active time excludes rest and pauses. Load is logged per set; no weight is inferred from the camera.
+UI state uses React hooks; no global event handlers or HTML string renderer. An individual session has one exercise and a fixed rep target for each set; a series runs an ordered sequence with a separate target per move. Active time excludes rest and pauses. Load is logged per set; no weight is inferred from the camera.
 
 ## FastAPI / vision handoff
 
@@ -61,3 +61,11 @@ Use a feature branch, keep each PR focused, and run `npm test` and `npm run buil
 - [Component libraries](docs/component-libraries.md): current Radix UI / Lucide mapping and browser checks.
 
 Setup fields adapt to narrow cards. Rest minus/plus controls always adjust by 15 seconds.
+
+## Exercise series and statistics
+
+- **Start series setup** creates an ordered list of moves. Add/remove exercises, reorder by dragging or the arrow controls, and choose a rep target for each move.
+- Each move is one set. The configured rest is used between moves; pause, skip and ±15-second rest adjustments work as in individual workouts.
+- A series summary preserves the full planned rep target even if ended early. Saving stores each move's result for history and statistics.
+- **Statistics** includes weekly repetitions, exercise mix, monthly activity and period navigation. Calorie figures use a fixed demonstration estimate per repetition; they are not measured energy expenditure.
+- Library views filter all/recent/favourite exercises. The five most recent unique exercises and favourites receive priority in the all-exercise view.

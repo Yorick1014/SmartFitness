@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import * as engine from "../domain/session";
+import {
+  applySession,
+  createSeriesSession,
+  finishCurrentSet,
+  endSession,
+} from "../domain/workout";
 import { createDemoSource } from "../services/vision";
 export function useWorkout() {
   const [session, setSession] = useState(null),
@@ -11,7 +17,9 @@ export function useWorkout() {
   }, [countdown]);
   useEffect(() => {
     if (!session || countdown || session.status === "completed") return;
-    return createDemoSource(() => setSession((s) => engine.tick(s)));
+    return createDemoSource(() =>
+      setSession((s) => applySession(s, engine.tick)),
+    );
   }, [!!session, countdown, session?.status === "completed"]);
   function start(exercise, plan) {
     setSession(
@@ -24,28 +32,34 @@ export function useWorkout() {
     );
     setCountdown(3);
   }
-  function finishSet() {
-    setSession((s) => {
-      if (s.status !== "active" || countdown) return s;
-      let next = s;
-      for (let i = s.setReps; i < s.target; i++) next = engine.addRep(next);
-      return next;
-    });
+  function startSeries(items) {
+    const next = createSeriesSession(items);
+    if (!next) return;
+    setSession(next);
+    setCountdown(3);
   }
+  function finishSet() {
+    if (!countdown) setSession(finishCurrentSet);
+  }
+
   return {
     session,
     countdown,
     start,
+    startSeries,
     finishSet,
     pause: () =>
       setSession((s) =>
         s.status === "paused" ? engine.resume(s) : engine.pause(s),
       ),
-    adjustRest: (seconds) => setSession((s) => engine.adjustRest(s, seconds)),
-    skipRest: () => setSession(engine.skipRest),
+    adjustRest: (seconds) =>
+      setSession((s) =>
+        applySession(s, (current) => engine.adjustRest(current, seconds)),
+      ),
+    skipRest: () => setSession((s) => applySession(s, engine.skipRest)),
     end: () => {
       setCountdown(0);
-      setSession((s) => ({ ...s, status: "completed" }));
+      setSession(endSession);
     },
     clear: () => setSession(null),
   };

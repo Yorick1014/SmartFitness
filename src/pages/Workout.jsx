@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import NumberStepper from "../components/NumberStepper";
 import { Plus, Minus, X } from "lucide-react";
+import { exercises } from "../domain/library";
 import Progress from "../components/Progress";
 import Dialog from "../components/Dialog";
 import Preview from "../components/Preview";
@@ -13,6 +14,13 @@ export default function Workout({
   overlay = true,
 }) {
   const { session: s, countdown } = workout;
+  const isSeries = s.kind === "series";
+  const current = isSeries
+    ? exercises.find((item) => item.id === s.exercise) || exercise
+    : exercise;
+  const nextMove = isSeries
+    ? exercises.find((item) => item.id === s.items[s.itemIndex + 1]?.exercise)
+    : null;
   const [log, setLog] = useState(false),
     [confirm, setConfirm] = useState(false);
   const [resumeOnCancel, setResumeOnCancel] = useState(false);
@@ -55,11 +63,16 @@ export default function Workout({
     <section className={`workout-stage ${log ? "show-log" : ""}`}>
       <div className="workout-canvas">
         <div className="workout-title">
-          <h1>{exercise.name}</h1>
+          <h1>{current.name}</h1>
+          {isSeries && (
+            <span className="series-progress">
+              Move {s.itemIndex + 1} of {s.items.length}
+            </span>
+          )}
           <span className="preview-chip">Demo camera</span>
         </div>
         <Preview
-          exercise={exercise}
+          exercise={current}
           moving={!countdown && s.status === "active"}
           overlay={overlay}
         />
@@ -67,7 +80,7 @@ export default function Workout({
           <span>REPS REMAINING</span>
           <strong>{s.target - s.setReps}</strong>
           <p>
-            Set {s.currentSet} of {s.sets}
+            {isSeries ? "Move" : "Set"} {s.currentSet} of {s.sets}
           </p>
           <Progress
             label="Workout repetition progress"
@@ -105,13 +118,17 @@ export default function Workout({
               </>
             ) : (
               <>
-                <span>SET {s.currentSet} COMPLETE</span>
+                <span>
+                  {isSeries ? "MOVE" : "SET"} {s.currentSet} COMPLETE
+                </span>
                 <h2>{paused ? "Rest paused" : "Take a breather."}</h2>
                 <strong className="big" role="timer">
                   {format(s.restRemaining)}
                 </strong>
                 <p>
-                  Next: set {s.currentSet + 1} · {s.target} reps
+                  {isSeries
+                    ? `Next: ${nextMove?.name} · ${s.items[s.itemIndex + 1]?.target} reps`
+                    : `Next: set ${s.currentSet + 1} · ${s.target} reps`}
                 </p>
                 <div className="rest-editor">
                   <span className="rest-editor-label">Adjust rest</span>
@@ -157,11 +174,13 @@ export default function Workout({
             className="primary"
             onClick={workout.finishSet}
           >
-            Finish set ✓
+            {isSeries ? "Finish move ✓" : "Finish set ✓"}
           </button>
-          <button onClick={() => setLog(!log)} aria-expanded={log}>
-            Sets
-          </button>
+          {!isSeries && (
+            <button onClick={() => setLog(!log)} aria-expanded={log}>
+              Sets
+            </button>
+          )}
           <button className="end-action" onClick={requestEnd}>
             End
           </button>
@@ -170,7 +189,7 @@ export default function Workout({
           {format(s.elapsed)} <small>ACTIVE TIME</small>
         </div>
       </div>
-      {log && (
+      {log && !isSeries && (
         <aside className="set-drawer" aria-label="Set log">
           <div className="set-log-header">
             <div>
