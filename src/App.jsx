@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import Library from "./pages/Library";
 import Setup from "./pages/Setup";
 import Workout, { format } from "./pages/Workout";
+import Settings from "./pages/Settings";
 import Preview from "./components/Preview";
+import Celebrate from "./components/Celebrate";
 import { exercises, toggleFavorite, recordRecent } from "./domain/library";
 import { load, persist } from "./services/storage";
 import { useWorkout } from "./hooks/useWorkout";
@@ -18,7 +20,8 @@ export default function App() {
       auto: true,
     }),
     [loads, setLoads] = useState([]),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [leaveGuard, setLeaveGuard] = useState(false);
   const workout = useWorkout(),
     s = workout.session,
     active = page === "workout" && s?.status !== "completed",
@@ -29,7 +32,7 @@ export default function App() {
       setData(next);
       return true;
     } catch {
-      setError("Could not save. Check browser storage and try again.");
+      setError("Check browser storage and try again.");
       return false;
     }
   }
@@ -61,6 +64,7 @@ export default function App() {
         ],
       })
     ) {
+      setLeaveGuard(false);
       workout.clear();
       setPage("history");
     }
@@ -89,7 +93,7 @@ export default function App() {
     const voice = new SpeechSynthesisUtterance(text);
     voice.volume = data.settings.volume ?? 0.7;
     window.speechSynthesis.speak(voice);
-  }, [s?.reps, s?.status, data.settings.speech]);
+  }, [s?.reps, s?.status, data.settings.speech, data.settings.volume]);
   return (
     <div className={`shell ${active ? "immersive" : ""}`}>
       <aside className="sidebar">
@@ -107,11 +111,7 @@ export default function App() {
               key={id}
               aria-label={label}
               aria-current={page === id ? "page" : undefined}
-              onClick={() =>
-                s
-                  ? setError("Save or discard this session before leaving.")
-                  : setPage(id)
-              }
+              onClick={() => (s ? setLeaveGuard(true) : setPage(id))}
             >
               <span>{glyph}</span>
               <strong>{label}</strong>
@@ -121,9 +121,78 @@ export default function App() {
       </aside>
       <main>
         {error && (
-          <div role="alert" className="error">
-            {error}
-            <button onClick={() => setError("")}>×</button>
+          <div role="alert" className="notice notice-error">
+            <div className="notice-copy">
+              <strong>Couldn’t save</strong>
+              <p>{error}</p>
+            </div>
+            <button
+              type="button"
+              className="notice-dismiss"
+              aria-label="Dismiss"
+              onClick={() => setError("")}
+            >
+              ×
+            </button>
+          </div>
+        )}
+        {leaveGuard && s && (
+          <div
+            className="modal-backdrop"
+            onClick={() => setLeaveGuard(false)}
+          >
+            <div
+              className="card modal leave-guard"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="leave-guard-title"
+              aria-describedby="leave-guard-desc"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="leave-guard-icon" aria-hidden="true">
+                {s.status === "completed" ? "◷" : "◎"}
+              </div>
+              <h2 id="leave-guard-title">
+                {s.status === "completed"
+                  ? "Save or discard first"
+                  : "Workout still in progress"}
+              </h2>
+              <p id="leave-guard-desc">
+                {s.status === "completed"
+                  ? "This session isn’t stored until you choose."
+                  : "Leaving now would interrupt this session. Stay and keep training, or end it to review what you’ve done."}
+              </p>
+              <div className="actions leave-guard-actions">
+                {s.status === "completed" ? (
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => setLeaveGuard(false)}
+                  >
+                    Stay here
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLeaveGuard(false);
+                        workout.end();
+                      }}
+                    >
+                      End & review
+                    </button>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => setLeaveGuard(false)}
+                    >
+                      Continue workout
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
         {page === "library" && (
@@ -184,6 +253,7 @@ export default function App() {
           s &&
           (s.status === "completed" ? (
             <>
+              <Celebrate />
               <header>
                 <h1>Session complete</h1>
               </header>
@@ -214,6 +284,7 @@ export default function App() {
                 <div className="actions">
                   <button
                     onClick={() => {
+                      setLeaveGuard(false);
                       workout.clear();
                       setPage("library");
                     }}
@@ -233,6 +304,7 @@ export default function App() {
               loads={loads}
               setLoads={setLoads}
               previous={previous}
+              overlay={data.settings.overlay !== false}
             />
           ))}
         {page === "history" && (
@@ -276,45 +348,10 @@ export default function App() {
           </>
         )}
         {page === "settings" && (
-          <>
-            <header>
-              <h1>Settings</h1>
-            </header>
-            <div className="card">
-              <h2>Feedback</h2>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={data.settings.speech}
-                  onChange={(e) =>
-                    update({
-                      ...data,
-                      settings: { ...data.settings, speech: e.target.checked },
-                    })
-                  }
-                />
-                Spoken counts and rest alerts
-              </label>
-              <h2>Data</h2>
-              <button
-                onClick={() => {
-                  const url = URL.createObjectURL(
-                    new Blob([JSON.stringify(data.history, null, 2)], {
-                      type: "application/json",
-                    }),
-                  );
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "smartfitness-history.json";
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }}
-              >
-                Export history
-              </button>
-              <p>Camera input is simulated. Sessions stay in this browser.</p>
-            </div>
-          </>
+          <Settings
+            settings={data.settings}
+            onChange={(settings) => update({ ...data, settings })}
+          />
         )}
       </main>
     </div>

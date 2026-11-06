@@ -6,6 +6,7 @@ export default function Workout({
   loads,
   setLoads,
   previous,
+  overlay = true,
 }) {
   const { session: s, countdown } = workout;
   const [log, setLog] = useState(false),
@@ -21,6 +22,7 @@ export default function Workout({
       <Preview
         exercise={exercise}
         moving={!countdown && s.status === "active"}
+        overlay={overlay}
       />
       <aside className="workout-counter">
         <span>REPS REMAINING</span>
